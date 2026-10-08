@@ -64,10 +64,11 @@ export function normalizeVariable(raw,variable='x'){
  return raw.toLowerCase().replaceAll(variable.toLowerCase(),'x');
 }
 export function classify(raw,question,previous){
+  const variable=question.variable||'x';
   if(!raw.trim())return {kind:'format',message:`Write a solving step or answer using ${question.variable||'x'} and =.`};
-  let p;try{p=parseEquation(normalizeVariable(raw,question.variable||'x'));}catch(e){return {kind:'format',message:e.message.replace(/[.]+$/,'')+`. Use ${question.variable||'x'} and an equals sign (=).` };}
+  let p;try{p=parseEquation(normalizeVariable(raw,question.variable||'x'));}catch(e){return {kind:'format',message:e.message.replace(/\bx\b/g,variable).replace(/[.]+$/,'')+`. Use ${question.variable||'x'} and an equals sign (=).` };}
   if(!p.solution||!eq(p.solution,parseEquation(`x = ${question.answer}`).solution))return {kind:'wrong',message:'This step changes the solution of the original equation. Apply the same operation to both sides.'};
-  if(p.isolated)return {kind:'complete',message:'Correct — x is isolated and your answer checks out.'};
-  if(previous){const last=parseEquation(normalizeVariable(previous,question.variable||'x'));if(eq(p.left.a,last.left.a)&&eq(p.left.b,last.left.b)&&eq(p.right.a,last.right.a)&&eq(p.right.b,last.right.b))return {kind:'unchanged',message:'That is the same working. Try an operation that moves you closer to x on its own.'};}
-  return {kind:'valid',message:'Valid step. You kept the same solution. Keep going until x is on its own.'};
+  if(p.isolated)return {kind:'complete',message:`Correct — ${variable} is on its own, and your answer checks out.`};
+  if(previous){const last=parseEquation(normalizeVariable(previous,question.variable||'x'));if(eq(p.left.a,last.left.a)&&eq(p.left.b,last.left.b)&&eq(p.right.a,last.right.a)&&eq(p.right.b,last.right.b))return {kind:'unchanged',message:`That is the same working. Try a step that leaves ${variable} on its own.`};}
+  return {kind:'valid',message:`Correct step. Keep going until ${variable} is on its own.`};
 }

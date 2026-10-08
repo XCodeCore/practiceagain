@@ -3,10 +3,10 @@ import {nextQuestion,customQuestion,lessonFor,similarQuestion,displayAnswer} fro
 import {KEY,restore,save} from './storage.mjs';
 const main=document.querySelector('#main');
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state={attempts:[],current:null},view='home',feedback=null;
+let state={attempts:[],current:null},view='home',feedback=null,unreadableSavedProgress=false;
 function warning(message){const el=document.querySelector('#storage-warning');el.hidden=false;el.textContent=message;document.querySelector('.local').textContent='Not saved — keep this tab open';}
-try{const raw=localStorage.getItem(KEY);if(raw)state=restore(raw);}catch{warning('Saved progress could not be read. Your new work can continue here. Clear saved progress to start clean.');}
-function persist(){let saved=false;try{saved=save(localStorage,state);}catch{}if(!saved)warning('Your browser could not save this work. It is available in this tab, but may be lost when you close or reload it.');}
+try{const raw=localStorage.getItem(KEY);if(raw)state=restore(raw);}catch{unreadableSavedProgress=true;warning('Saved progress could not be read. New work stays in this tab until you clear saved progress. Your old saved data will not be overwritten.');}
+function persist(){if(unreadableSavedProgress)return;let saved=false;try{saved=save(localStorage,state);}catch{}if(!saved)warning('Your browser could not save this work. It is available in this tab, but may be lost when you close or reload it.');}
 const active=()=>state.attempts.find(a=>a.id===state.current);
 function start(q=nextQuestion(active()?.question)){const a=createAttempt(q);state.attempts.push(a);state.attempts=state.attempts.slice(-100);state.current=a.id;feedback=null;view='practice';persist();render();}
 function button(id,text,cls='primary'){return `<button id="${id}" class="${cls}">${text}</button>`;}
@@ -28,7 +28,7 @@ function render(){
  main.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{state.current=b.dataset.open;view='practice';feedback=null;persist();render();});
  main.querySelector('#erase')?.addEventListener('click',()=>{main.querySelector('#confirm').hidden=false;main.querySelector('#delete').focus();});
  main.querySelector('#cancel')?.addEventListener('click',()=>main.querySelector('#confirm').hidden=true);
- main.querySelector('#delete')?.addEventListener('click',()=>{try{localStorage.removeItem(KEY);state={attempts:[],current:null};document.querySelector('#storage-warning').hidden=true;document.querySelector('.local').innerHTML='<i></i> Saved on this device';render();}catch{warning('Your browser did not allow saved progress to be deleted.');}});
+ main.querySelector('#delete')?.addEventListener('click',()=>{try{localStorage.removeItem(KEY);unreadableSavedProgress=false;state={attempts:[],current:null};document.querySelector('#storage-warning').hidden=true;document.querySelector('.local').innerHTML='<i></i> Saved on this device';render();}catch{warning('Your browser did not allow saved progress to be deleted.');}});
 }
 function review(){view='review';feedback=null;render();main.focus();}
 document.querySelector('#home').onclick=()=>{view='home';render();};document.querySelector('#review-nav').onclick=review;
